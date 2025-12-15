@@ -1,0 +1,45 @@
+{
+  "name": "autodeploy-engine",
+  "version": "1.0.0",
+  "description": "Generate production-ready CI/CD configurations in minutes",
+  "type": "module",
+  "main": "cli/index.js",
+  "bin": {
+    "autodeploy": "./cli/index.js"
+  },
+  "scripts": {
+    "dev": "vite --port 3000",
+    "build": "vite build",
+    "preview": "vite preview",
+    "cli": "node cli/index.js",
+    "test": "playwright test"
+  },
+  "keywords": [
+    "ci-cd",
+    "deployment",
+    "devops",
+    "automation",
+    "github-actions"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "chalk": "^5.3.0",
+    "commander": "^11.0.0",
+    "fs-extra": "^11.1.1",
+    "inquirer": "^9.2.0",
+    "lucide-react": "^0.263.1",
+    "ora": "^7.0.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "simple-git": "^3.19.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.57.0",
+    "@vitejs/plugin-react": "^4.0.0",
+    "autoprefixer": "^10.4.0",
+    "postcss": "^8.4.0",
+    "tailwindcss": "^3.3.0",
+    "vite": "^4.4.0"
+  }
+}
