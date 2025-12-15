@@ -8,31 +8,14 @@ import chalk from 'chalk';
 import ora from 'ora';
 import fs from 'fs-extra';
 import path from 'path';
-import { generateFiles } from './commands/generate.js';
+import { generateFiles as defaultGenerateFiles } from './commands/generate.js';
 import { GitHubClient, TokenManager, setupGitHubToken } from './utils/github.js';
 import simpleGit from 'simple-git';
 
-const program = new Command();
+export const program = new Command();
 const git = simpleGit();
 
-program
-  .name('autodeploy')
-  .description('Generate and deploy CI/CD configurations automatically')
-  .version('1.0.0');
-
-// ============================================
-// COMMAND: init (with optional auto-setup)
-// ============================================
-program
-  .command('init')
-  .description('Interactive setup wizard')
-  .option('--auto-setup', 'Automatically push to GitHub and configure')
-  .option('-t, --projectType <type>', 'Project type (web, android, backend, fullstack)')
-  .option('-f, --framework <framework>', 'Framework (Next.js, React, etc.)')
-  .option('-b, --budget <budget>', 'Budget (free, low, medium, pro, pro-azure)')
-  .option('-l, --technical <level>', 'Technical level (beginner, intermediate, advanced)')
-  .option('-n, --projectName <name>', 'Project name')
-  .action(async (options) => {
+export async function initCommand(options, { generateFiles = defaultGenerateFiles, tokenManager = new TokenManager() } = {}) {
     console.log(chalk.bold.blue('\n🚀 AutoDeploy Engine\n'));
 
     // Check if in git repo
@@ -156,7 +139,6 @@ program
       if (answers.useGitHub) {
         spinner.start('Setting up GitHub integration...');
 
-        const tokenManager = new TokenManager();
         let token = await tokenManager.loadToken();
 
         if (!token) {
@@ -246,7 +228,27 @@ program
       console.error(error);
       process.exit(1);
     }
-  });
+}
+
+
+program
+  .name('autodeploy')
+  .description('Generate and deploy CI/CD configurations automatically')
+  .version('1.0.0');
+
+// ============================================
+// COMMAND: init (with optional auto-setup)
+// ============================================
+program
+  .command('init')
+  .description('Interactive setup wizard')
+  .option('--auto-setup', 'Automatically push to GitHub and configure')
+  .option('-t, --projectType <type>', 'Project type (web, android, backend, fullstack)')
+  .option('-f, --framework <framework>', 'Framework (Next.js, React, etc.)')
+  .option('-b, --budget <budget>', 'Budget (free, low, medium, pro, pro-azure)')
+  .option('-l, --technical <level>', 'Technical level (beginner, intermediate, advanced)')
+  .option('-n, --projectName <name>', 'Project name')
+  .action(initCommand);
 
 // ============================================
 // COMMAND: github (token management)
@@ -439,4 +441,6 @@ program
     }
   });
 
-program.parse();
+if (process.env.NODE_ENV === 'test') {
+    program.exitOverride();
+}

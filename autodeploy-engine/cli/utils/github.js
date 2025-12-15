@@ -5,6 +5,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import os from 'os';
 import crypto from 'crypto';
+import { execSync as defaultExecSync } from 'child_process';
 
 // Token storage location (encrypted)
 const TOKEN_FILE = path.join(os.homedir(), '.autodeploy', 'tokens.enc');
@@ -14,9 +15,10 @@ const KEY_FILE = path.join(os.homedir(), '.autodeploy', '.key');
  * GitHub API Client with fine-grained token support
  */
 export class GitHubClient {
-  constructor(token) {
+  constructor(token, { execSync = defaultExecSync } = {}) {
     this.octokit = new Octokit({ auth: token });
     this.token = token;
+    this.execSync = execSync;
   }
 
   /**
@@ -24,8 +26,7 @@ export class GitHubClient {
    */
   async getRepoInfo() {
     try {
-      const { execSync } = await import('child_process');
-      const remoteUrl = execSync('git remote get-url origin', { encoding: 'utf8' }).trim();
+      const remoteUrl = this.execSync('git remote get-url origin', { encoding: 'utf8' }).trim();
 
       // Parse GitHub URL
       const match = remoteUrl.match(/github\.com[:/](.+?)\/(.+?)(\.git)?$/);
@@ -75,17 +76,17 @@ export class GitHubClient {
    */
   async createWorkflow(workflowName, content) {
     const { owner, repo } = await this.getRepoInfo();
-    const path = `.github/workflows/${workflowName}`;
+    const workflowPath = `.github/workflows/${workflowName}`;
 
     try {
       // Try to get existing file
-      const { data } = await this.octokit.repos.getContent({ owner, repo, path });
+      const { data } = await this.octokit.repos.getContent({ owner, repo, path: workflowPath });
 
       // Update existing file
       await this.octokit.repos.createOrUpdateFileContents({
         owner,
         repo,
-        path,
+        path: workflowPath,
         message: `Update ${workflowName}`,
         content: Buffer.from(content).toString('base64'),
         sha: data.sha
@@ -101,7 +102,7 @@ export class GitHubClient {
         await this.octokit.repos.createOrUpdateFileContents({
           owner,
           repo,
-          path,
+          path: workflowPath,
           message: `Add ${workflowName}`,
           content: Buffer.from(content).toString('base64')
         });
@@ -116,6 +117,17 @@ export class GitHubClient {
     }
   }
 
+  async _encryptSecret(secretValue, key) {
+    // This is hard to test directly, so we extract it.
+    const sodium = await import('libsodium-wrappers');
+    await sodium.ready;
+
+    const messageBytes = Buffer.from(secretValue);
+    const keyBytes = Buffer.from(key, 'base64');
+    const encryptedBytes = sodium.crypto_box_seal(messageBytes, keyBytes);
+    return Buffer.from(encryptedBytes).toString('base64');
+  }
+
   /**
    * Set repository secret
    */
@@ -128,14 +140,7 @@ export class GitHubClient {
       repo
     });
 
-    // Encrypt secret using libsodium
-    const sodium = await import('libsodium-wrappers');
-    await sodium.ready;
-
-    const messageBytes = Buffer.from(secretValue);
-    const keyBytes = Buffer.from(key, 'base64');
-    const encryptedBytes = sodium.crypto_box_seal(messageBytes, keyBytes);
-    const encrypted = Buffer.from(encryptedBytes).toString('base64');
+    const encrypted = await this._encryptSecret(secretValue, key);
 
     // Create or update secret
     await this.octokit.actions.createOrUpdateRepoSecret({
@@ -158,8 +163,7 @@ export class GitHubClient {
     const { owner, repo } = await this.getRepoInfo();
     let branch = ref;
     if (!branch) {
-      const { execSync } = await import('child_process');
-      branch = execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf8' }).trim();
+      branch = this.execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf8' }).trim();
     }
 
     await this.octokit.actions.createWorkflowDispatch({
@@ -402,6 +406,7 @@ export async function setupGitHubToken() {
     ]);
 
     await tokenManager.saveToken(token);
+    console.log(chalk.green(`✓ Token saved securely`));
 
     // Verify token
     console.log(chalk.yellow('\nVerifying token permissions...'));
