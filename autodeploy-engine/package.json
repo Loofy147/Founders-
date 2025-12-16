@@ -11,8 +11,9 @@
     "dev": "vite --port 3000",
     "build": "vite build",
     "preview": "vite preview",
-    "cli": "node cli/index.js",
-    "test": "playwright test"
+    "cli": "node cli/run.js",
+    "test": "ava tests/commands.spec.js tests/github-client.spec.js && npx playwright test",
+    "coverage": "c8 ava"
   },
   "keywords": [
     "ci-cd",
@@ -42,22 +43,14 @@
     "@vitejs/plugin-react": "^4.0.0",
     "autoprefixer": "^10.4.0",
     "ava": "^6.4.1",
+    "c8": "^10.1.3",
     "execa": "^9.6.1",
     "inquirer-test": "^2.0.1",
     "nock": "^14.0.10",
+    "nyc": "^17.1.0",
     "postcss": "^8.4.0",
     "sinon": "^21.0.0",
     "tailwindcss": "^3.3.0",
     "vite": "^4.4.0"
-  },
-  "ava": {
-    "files": [
-      "tests/**/*.spec.js",
-      "!tests/azure-flow.spec.js",
-      "!tests/interactive.spec.js"
-    ],
-    "environmentVariables": {
-      "NODE_ENV": "test"
-    }
   }
 }

@@ -47,21 +47,22 @@ export class GitHubClient {
   async verifyPermissions() {
     try {
       const { owner, repo } = await this.getRepoInfo();
+      const { data: repoData } = await this.octokit.repos.get({ owner, repo });
+      const permissions = repoData.permissions;
 
       // Test required permissions
       const checks = [
-        { name: 'Read repository', test: () => this.octokit.repos.get({ owner, repo }) },
-        { name: 'Write workflows', test: () => this.octokit.repos.getContent({ owner, repo, path: '.github' }).catch(() => true) },
-        { name: 'Create secrets', test: () => this.octokit.actions.getRepoPublicKey({ owner, repo }) },
+        { name: 'Read repository', test: () => permissions && permissions.pull },
+        { name: 'Write workflows', test: () => permissions && permissions.push },
+        { name: 'Create secrets', test: () => permissions && permissions.admin },
       ];
 
       const results = [];
       for (const check of checks) {
-        try {
-          await check.test();
+        if (check.test()) {
           results.push({ name: check.name, status: 'ok' });
-        } catch (error) {
-          results.push({ name: check.name, status: 'failed', error: error.message });
+        } else {
+          results.push({ name: check.name, status: 'failed' });
         }
       }
 
