@@ -5,7 +5,7 @@
   "type": "module",
   "main": "cli/index.js",
   "bin": {
-    "autodeploy": "./cli/index.js"
+    "autodeploy": "./cli/run.js"
   },
   "scripts": {
     "dev": "vite --port 3000",
@@ -41,8 +41,23 @@
     "@playwright/test": "^1.57.0",
     "@vitejs/plugin-react": "^4.0.0",
     "autoprefixer": "^10.4.0",
+    "ava": "^6.4.1",
+    "execa": "^9.6.1",
+    "inquirer-test": "^2.0.1",
+    "nock": "^14.0.10",
     "postcss": "^8.4.0",
+    "sinon": "^21.0.0",
     "tailwindcss": "^3.3.0",
-    "vite": "^5.4.21"
+    "vite": "^4.4.0"
+  },
+  "ava": {
+    "files": [
+      "tests/**/*.spec.js",
+      "!tests/azure-flow.spec.js",
+      "!tests/interactive.spec.js"
+    ],
+    "environmentVariables": {
+      "NODE_ENV": "test"
+    }
   }
 }
